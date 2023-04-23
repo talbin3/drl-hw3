@@ -12,7 +12,8 @@ class DynaQPlus:
         self.model = [[(0, 0)] * 4] * (gridWorld.rows * gridWorld.cols)
 
     def learn(self):
-        numEpisodes = 10
+        numEpisodes = 50
+        epNum = 0
         for i in range(numEpisodes):
             # reset gridworld for next episode
             self.gridWorld.reset()
@@ -20,7 +21,10 @@ class DynaQPlus:
             # track whether current episode has terminated
             done = False
 
-            # track current state of current episode and use p
+            # number of steps taken during current episode (performance measure)
+            stepCount = 0
+
+            # track current state of current episode 
             currentPos = self.gridWorld.start
 
             while not done: 
@@ -28,22 +32,35 @@ class DynaQPlus:
                 s = self.getIndex(currentPos)
 
                 # select action (epsilon-greedy)
-                action = self.selectAction(currentPos)
+                action = self.selectAction(s)
 
                 # take the action; observe R, S'
                 reward, newPos, done = self.gridWorld.step(action)
 
+                if reward == 1:
+                    print("here")
+
+
+                # update position
+                currentPos = newPos
+
                 # direct RL update
                 sNew = self.getIndex(newPos) # new state
-                print(sNew)
-                self.q[s][action] = self.q[s][action] + self.stepSize * (reward + self.discountRate * self.getBestActionValue(sNew) - self.q[s][action])
+                self.q[s][action] = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action])
 
                 # model update
                 self.model[s][action] = (reward, sNew)
 
-                # planning
-                for i in range(self.n):
-                    pass
+                stepCount += 1
+
+                # TODO: planning
+
+
+            print("EP " + str(epNum) + " COMPLETE: " + str(stepCount))
+            stepCount = 0 # reset for next iter
+
+            epNum += 1
+            print(self.q)
 
             
     def selectAction(self, s):
