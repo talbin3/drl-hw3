@@ -8,7 +8,7 @@ class DynaQPlus:
         self.n = n                                              # number of planning iterations
         self.epsilon = epsilon
         self.stepSize = stepSize
-        self.discountRate = 0.95
+        self.discountRate = 0.5
         self.gridWorld = gridWorld                              # gridWorld instance to be trained on
 
         # allocate space for state-action value function 
@@ -60,7 +60,6 @@ class DynaQPlus:
 
                 # select action (epsilon-greedy)
                 action = self.selectAction(s)
-               # print(action)
 
                 # record action taken at s
                 visited[s][action] = True 
@@ -73,7 +72,13 @@ class DynaQPlus:
 
                 # direct RL update
                 sNew = self.getIndex(newPos) # new state
-                self.q[s][action] = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action])
+                val = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action])
+                print(self.q[s][action])
+                print(self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action]))
+                print(self.getBestActionValue(sNew))
+                #if val > 1:
+                #    print()
+                self.q[s][action] = val
 
                 # model update
                 self.model[s][action] = (reward, sNew)
@@ -126,9 +131,8 @@ class DynaQPlus:
 
     # get value of best action in state s
     def getBestActionValue(self, s):
-        a = np.argmax(self.q[s])
-        #@print(a) 
-        return a
+        a = self.randomArgMax(self.q[s])
+        return self.q[s][a]
     
 
     def plot(self):

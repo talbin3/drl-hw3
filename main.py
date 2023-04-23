@@ -3,9 +3,9 @@ from DynaQPlus import DynaQPlus
 
 def main():
     # experiment settings
-    numRows = 12
-    numCols = 12
-    gridWorld = GridWorld(numRows, numCols, (0, 0), (11, 11))
+    numRows = 5
+    numCols = 5
+    gridWorld = GridWorld(numRows, numCols, (0, 0), (4, 4))
 
     # run experiment
     n = 1
@@ -14,8 +14,8 @@ def main():
     dynaQP = DynaQPlus(n, epsilon, stepSize, gridWorld)
 
     dynaQP.learn()
-    #print(dynaQP.q)
     dynaQP.plot()
+    print(dynaQP.q)
 
 
 
