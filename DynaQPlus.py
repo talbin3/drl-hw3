@@ -1,5 +1,7 @@
 from GridWorld import GridWorld
+import numpy as np
 import random
+import matplotlib.pylab as plt
 
 class DynaQPlus:
     def __init__(self, n, epsilon, stepSize, gridWorld):
@@ -8,11 +10,23 @@ class DynaQPlus:
         self.stepSize = stepSize
         self.discountRate = 0.95
         self.gridWorld = gridWorld                              # gridWorld instance to be trained on
-        self.q = [[0] * 4] * (gridWorld.rows * gridWorld.cols)  # state-value function          
+
+        # allocate space for state-action value function 
+        self.q = []
+        for i in range(gridWorld.rows):
+            for j in range(gridWorld.cols):
+                actionSpace = np.array([0, 0, 0, 0], dtype=float)
+                self.q.append(actionSpace)
+
+        print(self.q)
+
         self.model = [[(0, 0)] * 4] * (gridWorld.rows * gridWorld.cols)
 
+        self.avgStepNum = 0
+        self.stepsPerEp = []
+
     def learn(self):
-        numEpisodes = 50
+        numEpisodes = 200
         epNum = 0
         for i in range(numEpisodes):
             # reset gridworld for next episode
@@ -28,6 +42,7 @@ class DynaQPlus:
             currentPos = self.gridWorld.start
 
             while not done: 
+                print(i)
                 # store current state for state-action-value computation
                 s = self.getIndex(currentPos)
 
@@ -36,10 +51,6 @@ class DynaQPlus:
 
                 # take the action; observe R, S'
                 reward, newPos, done = self.gridWorld.step(action)
-
-                if reward == 1:
-                    print("here")
-
 
                 # update position
                 currentPos = newPos
@@ -53,14 +64,21 @@ class DynaQPlus:
 
                 stepCount += 1
 
+
                 # TODO: planning
 
 
-            print("EP " + str(epNum) + " COMPLETE: " + str(stepCount))
+#            print("EP " + str(epNum) + " COMPLETE: " + str(stepCount))
+
+            # update step-count average
+            self.avgStepNum += (1 / (epNum + 1)) * (stepCount - self.avgStepNum)
+
+            self.stepsPerEp.append(stepCount)
+
+
             stepCount = 0 # reset for next iter
 
             epNum += 1
-            print(self.q)
 
             
     def selectAction(self, s):
@@ -69,8 +87,9 @@ class DynaQPlus:
             return random.randint(0, 3)     
         
         # choose greedy otherwise
-        else: 
-            return self.q[s].index(max(self.q[s]))
+        else:
+            return self.randomArgMax(self.q[s]) 
+            #return np.argmax(self.q[s])
         
 
     # returns true (probability * 100)% of the time, false rest of time
@@ -85,7 +104,37 @@ class DynaQPlus:
 
     # get value of best action in state s
     def getBestActionValue(self, s):
-        return self.q[s].index(max(self.q[s]))
+        a = np.argmax(self.q[s])
+        #@print(a) 
+        return a
+    
+
+    def plot(self):
+        fig, ax = plt.subplots()
+        ax.plot(self.stepsPerEp)
+        plt.show()
+
+    
+
+    def randomArgMax(self, a):
+        max = 0
+        maxIndex = 0
+        nohit = True
+        for i in range(len(a)):
+            if a[i] > max:
+                nohit = False
+                max = a[i]
+                maxIndex = i
+
+        if nohit:
+            return random.randint(0, 3)     
+        
+        else: 
+            return maxIndex
+
+            
+
+
 
 
         
