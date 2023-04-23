@@ -1,5 +1,6 @@
 from GridWorld import GridWorld
 from DynaQPlus import DynaQPlus
+from DynaQ import DynaQ, DynaQType
 import matplotlib.pylab as plt
 
 def main():
@@ -9,29 +10,35 @@ def main():
     gridWorld = GridWorld(numRows, numCols, (0, 0), (11, 11))
 
     # run experiment
-    modded = False
+    type = DynaQType.NORMAL
     numEpisodes = 200
     n = 5
     epsilon = 0.01
     stepSize = 0.1
     kappa = 0.001
 
-    # un-modded DynaQ+
-    dynaQP = DynaQPlus(modded, numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
+    # Normal DynaQ (no exploration bonus)
+    dynaQ = DynaQ(type, numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
+    dynaQ.learn()
+
+    # DynaQ+ with updates
+    type = DynaQType.DYNA_Q_PLUS
+    dynaQP = DynaQ(type, numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
     dynaQP.learn()
 
-    # modded DynaQ+
-    modded = True
-    dynaQPModded = DynaQPlus(modded, numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
-    dynaQPModded.learn()
+    # DynaQ+ NO UPDATE
+    type = DynaQType.DYNA_Q_PLUS_NO_UPDATE
+    dynaQPNoUpdate = DynaQ(type, numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
+    dynaQPNoUpdate.learn()
 
-    plotResults(dynaQP, dynaQPModded)
+    plotResults(dynaQ, dynaQP, dynaQPNoUpdate)
 
 
-def plotResults(dynaQP, dynaQPModded):
+def plotResults(dynaQ, dynaQP, dynaQPNoUpdate):
     fig, ax = plt.subplots()
-    ax.plot(dynaQP.cumulativeRewards, color='r')
-    ax.plot(dynaQPModded.cumulativeRewards)
+    ax.plot(dynaQ.cumulativeRewards, color='r')
+    ax.plot(dynaQP.cumulativeRewards, color='b')
+    ax.plot(dynaQPNoUpdate.cumulativeRewards, color='g')
     plt.show()
 
 
