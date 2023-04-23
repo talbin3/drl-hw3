@@ -4,7 +4,8 @@ import random
 import matplotlib.pylab as plt
 
 class DynaQPlus:
-    def __init__(self, numEpisodes, n, epsilon, stepSize, kappa, gridWorld):
+    def __init__(self, modded, numEpisodes, n, epsilon, stepSize, kappa, gridWorld):
+        self.modded = modded
         self.numEpisodes = numEpisodes
         self.n = n                                              # number of planning iterations
         self.epsilon = epsilon
@@ -28,6 +29,8 @@ class DynaQPlus:
                 inner = np.array([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)], dtype=object)
                 self.model.append(inner)
 
+        # store avg cumulative return
+        self.cumulativeRewards = [0]
 
         self.avgStepNum = 0
         self.stepsPerEp = []
@@ -45,7 +48,7 @@ class DynaQPlus:
             timesTaken = np.array([0, 0, 0, 0])
             sinceLastVisit.append(timesTaken)
 
-
+        cumulativeReward = 0
         epNum = 0
         for i in range(self.numEpisodes):
             print(i)
@@ -78,12 +81,16 @@ class DynaQPlus:
                 # take the action; observe R, S'
                 reward, newPos, done = self.gridWorld.step(action)
 
+                # update cumulative reward
+                cumulativeReward += reward
+                self.cumulativeRewards.append(cumulativeReward)
+
                 # update position
                 currentPos = newPos
 
                 # direct RL update
                 sNew = self.getIndex(newPos) # new state
-                val = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action])
+                val = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew, sinceLastVisit)) - self.q[s][action])
                 self.q[s][action] = val
 
                 # model update
@@ -100,10 +107,15 @@ class DynaQPlus:
                     result = self.model[state][a]
 
                     # update based on simulated experience
-                    reward = result[0] + self.kappa * np.sqrt(sinceLastVisit[state][a])
+                    reward = 0
+                    if self.modded:
+                        reward = result[0]
+                    else: 
+                        reward = result[0] + self.kappa * np.sqrt(sinceLastVisit[state][a])
+
                     #reward = result[0]
                    # print(reward)
-                    self.q[state][a] = self.q[state][a] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(result[1])) - self.q[state][a])
+                    self.q[state][a] = self.q[state][a] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(result[1], sinceLastVisit)) - self.q[state][a])
 
 
 
@@ -118,7 +130,6 @@ class DynaQPlus:
 
             epNum += 1
         
-        print(sinceLastVisit)
 
 
             
@@ -144,14 +155,21 @@ class DynaQPlus:
     
 
     # get value of best action in state s
-    def getBestActionValue(self, s):
-        a = self.randomArgMax(self.q[s])
+    def getBestActionValue(self, s, sinceLastVisit):
+        if self.modded: 
+            aSpace = self.q[s].copy()
+            for i in range(len(aSpace)):
+                aSpace[i] = aSpace[i] + self.kappa * np.sqrt(sinceLastVisit[s][i])
+            a = self.randomArgMax(aSpace)
+
+        else:
+            a = self.randomArgMax(self.q[s])
         return self.q[s][a]
     
 
     def plot(self):
         fig, ax = plt.subplots()
-        ax.plot(self.stepsPerEp)
+        ax.plot(self.cumulativeRewards)
         plt.show()
 
 
