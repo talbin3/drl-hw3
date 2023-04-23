@@ -18,17 +18,30 @@ class DynaQPlus:
                 actionSpace = np.array([0, 0, 0, 0], dtype=float)
                 self.q.append(actionSpace)
 
-        print(self.q)
 
-        self.model = [[(0, 0)] * 4] * (gridWorld.rows * gridWorld.cols)
+        # allocate space for model 
+        self.model = []
+        for i in range(gridWorld.rows):
+            for j in range(gridWorld.cols):
+                inner = np.array([(0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)], dtype=object)
+                self.model.append(inner)
+
 
         self.avgStepNum = 0
         self.stepsPerEp = []
 
     def learn(self):
+        # store observed states and actions taken within them; if visited[s] = [False, False, False, False], s not visited yet
+        visited = []
+        for i in range(self.gridWorld.rows * self.gridWorld.cols):
+            actionsTaken = np.array([False, False, False, False])
+            visited.append(actionsTaken)
+
+
         numEpisodes = 200
         epNum = 0
         for i in range(numEpisodes):
+            print(i)
             # reset gridworld for next episode
             self.gridWorld.reset()
 
@@ -42,13 +55,16 @@ class DynaQPlus:
             currentPos = self.gridWorld.start
 
             while not done: 
-                print(i)
                 # store current state for state-action-value computation
                 s = self.getIndex(currentPos)
 
                 # select action (epsilon-greedy)
                 action = self.selectAction(s)
+               # print(action)
 
+                # record action taken at s
+                visited[s][action] = True 
+                
                 # take the action; observe R, S'
                 reward, newPos, done = self.gridWorld.step(action)
 
@@ -64,8 +80,14 @@ class DynaQPlus:
 
                 stepCount += 1
 
-
                 # TODO: planning
+                for j in range(self.n):
+                    # get random (state, action) pair observed
+                    (state, a) = self.getVisitedPair(visited)
+                    result = self.model[state][a]
+                    self.q[state][a] = self.q[state][a] + self.stepSize * (result[0] + (self.discountRate * self.getBestActionValue(result[1])) - self.q[state][a])
+
+
 
 
 #            print("EP " + str(epNum) + " COMPLETE: " + str(stepCount))
@@ -75,10 +97,10 @@ class DynaQPlus:
 
             self.stepsPerEp.append(stepCount)
 
-
             stepCount = 0 # reset for next iter
 
             epNum += 1
+
 
             
     def selectAction(self, s):
@@ -114,8 +136,8 @@ class DynaQPlus:
         ax.plot(self.stepsPerEp)
         plt.show()
 
-    
 
+    # argmax of array a; ties broken randomly
     def randomArgMax(self, a):
         max = 0
         maxIndex = 0
@@ -132,7 +154,21 @@ class DynaQPlus:
         else: 
             return maxIndex
 
-            
+
+    def getVisitedPair(self, visited):
+        done = False
+        while not done: 
+            s = random.randint(0, len(self.q) - 1)
+            actionsTaken = []
+            for i in range(4):
+                if visited[s][i]:
+                    actionsTaken.append(i)
+
+            try: 
+                return (s, random.choice(actionsTaken))
+
+            except IndexError: # state not seen-select new random state
+                continue
 
 
 

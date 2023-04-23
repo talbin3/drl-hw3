@@ -8,14 +8,13 @@ def main():
     gridWorld = GridWorld(numRows, numCols, (0, 0), (11, 11))
 
     # run experiment
-    n = 10
+    n = 1
     epsilon = 0.05
-    stepSize = 0.05
+    stepSize = 0.1
     dynaQP = DynaQPlus(n, epsilon, stepSize, gridWorld)
 
-    
-
     dynaQP.learn()
+    #print(dynaQP.q)
     dynaQP.plot()
 
 
