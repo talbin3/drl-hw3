@@ -3,15 +3,17 @@ from DynaQPlus import DynaQPlus
 
 def main():
     # experiment settings
-    numRows = 5
-    numCols = 5
-    gridWorld = GridWorld(numRows, numCols, (0, 0), (4, 4))
+    numRows = 12
+    numCols = 12
+    gridWorld = GridWorld(numRows, numCols, (0, 0), (11, 11))
 
     # run experiment
-    n = 1
-    epsilon = 0.05
+    numEpisodes = 200
+    n = 5
+    epsilon = 0.01
     stepSize = 0.1
-    dynaQP = DynaQPlus(n, epsilon, stepSize, gridWorld)
+    kappa = 0.001
+    dynaQP = DynaQPlus(numEpisodes, n, epsilon, stepSize, kappa, gridWorld)
 
     dynaQP.learn()
     dynaQP.plot()

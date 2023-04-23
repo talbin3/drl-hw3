@@ -4,10 +4,12 @@ import random
 import matplotlib.pylab as plt
 
 class DynaQPlus:
-    def __init__(self, n, epsilon, stepSize, gridWorld):
+    def __init__(self, numEpisodes, n, epsilon, stepSize, kappa, gridWorld):
+        self.numEpisodes = numEpisodes
         self.n = n                                              # number of planning iterations
         self.epsilon = epsilon
         self.stepSize = stepSize
+        self.kappa = kappa
         self.discountRate = 0.5
         self.gridWorld = gridWorld                              # gridWorld instance to be trained on
 
@@ -37,10 +39,15 @@ class DynaQPlus:
             actionsTaken = np.array([False, False, False, False])
             visited.append(actionsTaken)
 
+        # store the number of timesteps since each (s, a) pair has been tried
+        sinceLastVisit = []
+        for i in range(self.gridWorld.rows * self.gridWorld.cols):
+            timesTaken = np.array([0, 0, 0, 0])
+            sinceLastVisit.append(timesTaken)
 
-        numEpisodes = 200
+
         epNum = 0
-        for i in range(numEpisodes):
+        for i in range(self.numEpisodes):
             print(i)
             # reset gridworld for next episode
             self.gridWorld.reset()
@@ -63,6 +70,10 @@ class DynaQPlus:
 
                 # record action taken at s
                 visited[s][action] = True 
+
+                # add one to all (s, a) pairs sinceLastVisit, as a timestep has passed
+                self.updateLastVisits(sinceLastVisit)
+                sinceLastVisit[s][action] = 0
                 
                 # take the action; observe R, S'
                 reward, newPos, done = self.gridWorld.step(action)
@@ -73,11 +84,6 @@ class DynaQPlus:
                 # direct RL update
                 sNew = self.getIndex(newPos) # new state
                 val = self.q[s][action] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action])
-                print(self.q[s][action])
-                print(self.stepSize * (reward + (self.discountRate * self.getBestActionValue(sNew)) - self.q[s][action]))
-                print(self.getBestActionValue(sNew))
-                #if val > 1:
-                #    print()
                 self.q[s][action] = val
 
                 # model update
@@ -85,13 +91,19 @@ class DynaQPlus:
 
                 stepCount += 1
 
-                # TODO: planning
+                # planning
                 for j in range(self.n):
                     # get random (state, action) pair observed
                     (state, a) = self.getVisitedPair(visited)
-                    result = self.model[state][a]
-                    self.q[state][a] = self.q[state][a] + self.stepSize * (result[0] + (self.discountRate * self.getBestActionValue(result[1])) - self.q[state][a])
 
+                    # simluate a transition
+                    result = self.model[state][a]
+
+                    # update based on simulated experience
+                    reward = result[0] + self.kappa * np.sqrt(sinceLastVisit[state][a])
+                    #reward = result[0]
+                   # print(reward)
+                    self.q[state][a] = self.q[state][a] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(result[1])) - self.q[state][a])
 
 
 
@@ -105,6 +117,8 @@ class DynaQPlus:
             stepCount = 0 # reset for next iter
 
             epNum += 1
+        
+        print(sinceLastVisit)
 
 
             
@@ -175,7 +189,10 @@ class DynaQPlus:
                 continue
 
 
-
+    def updateLastVisits(self, a):
+        for i in range(len(a)):
+            for j in range(len(a[i])):
+                a[i][j] += 1
 
         
 
