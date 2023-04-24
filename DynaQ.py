@@ -4,6 +4,7 @@ import random
 import matplotlib.pylab as plt
 from enum import Enum
 
+
 class DynaQType(Enum):
     NORMAL = 0
     DYNA_Q_PLUS = 1
@@ -17,7 +18,7 @@ class DynaQ:
         self.epsilon = epsilon
         self.stepSize = stepSize
         self.kappa = kappa
-        self.discountRate = 0.5
+        self.discountRate = 0.95
         self.gridWorld = gridWorld                              # gridWorld instance to be trained on
 
         # allocate space for state-action value function 
@@ -47,6 +48,7 @@ class DynaQ:
             timesTaken = np.array([0, 0, 0, 0])
             self.sinceLastVisit.append(timesTaken)
 
+
     def learn(self):
         # store observed states and actions taken within them; if visited[s] = [False, False, False, False], s not visited yet
         visited = []
@@ -62,8 +64,15 @@ class DynaQ:
 
         cumulativeReward = 0
         epNum = 0
+        totalSteps = 0
         for i in range(self.numEpisodes):
-            print(i)
+            # progress report
+            print(str(i) + " / " + str(self.numEpisodes))
+
+            # change map after certain amount of timesteps
+            if totalSteps > 2000:
+                self.gridWorld.buildMap("change.txt")
+
             # reset gridworld for next episode
             self.gridWorld.reset()
 
@@ -124,22 +133,15 @@ class DynaQ:
                     #reward = result[0]
                     self.q[state][a] = self.q[state][a] + self.stepSize * (reward + (self.discountRate * self.getBestActionValue(result[1])) - self.q[state][a])
 
-
-
-#            print("EP " + str(epNum) + " COMPLETE: " + str(stepCount))
-
-            # update step-count average
+            # update counters and data-trackers
             self.avgStepNum += (1 / (epNum + 1)) * (stepCount - self.avgStepNum)
-
             self.stepsPerEp.append(stepCount)
+            epNum += 1
+            totalSteps += stepCount
 
             stepCount = 0 # reset for next iter
-
-            epNum += 1
         
 
-
-            
     def selectAction(self, s):
         # choose random action epsilon percent of the time
         if self.getDecision(self.epsilon):
@@ -148,7 +150,6 @@ class DynaQ:
         # choose greedy otherwise
         else:
             return self.randomArgMax(self.q[s]) 
-            #return np.argmax(self.q[s])
         
 
     # returns true (probability * 100)% of the time, false rest of time
@@ -199,6 +200,7 @@ class DynaQ:
             return maxIndex
 
 
+    # get random visited (state, action) pair
     def getVisitedPair(self, visited):
         done = False
         while not done: 
@@ -215,13 +217,14 @@ class DynaQ:
                 continue
 
 
+    # add one to all sinceLastVisits
     def updateLastVisits(self, a):
         for i in range(len(a)):
             for j in range(len(a[i])):
                 a[i][j] += 1
 
         
-
+    # return the reward TO BE USED IN Q UPDATE 
     def getReward(self, transitionReward, s, a):
         if self.type == DynaQType.DYNA_Q_PLUS: 
             return transitionReward + self.kappa * np.sqrt(self.sinceLastVisit[s][a])
